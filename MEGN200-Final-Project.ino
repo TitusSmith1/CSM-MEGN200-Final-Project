@@ -1,5 +1,9 @@
 #include <TinyGPSPlus.h>
 #include <Servo.h> // include the servo library  to control the servos
+#include <Wire.h>
+
+#include "SparkFun_BNO080_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_BNO080
+BNO080 myIMU;
 
 float LAT = 0.0000;// temp values to hold GPS data
 float LNG = 0.0000;
@@ -33,6 +37,22 @@ void setup() {
   for(int i = 0;i<channels;i++){
     servos[i].attach(servo_channels[i]);
   }
+
+
+  Wire.begin();
+  if (myIMU.begin() == false)
+  {
+    Serial.println("BNO080 not detected at default I2C address. Check your jumpers and the hookup guide. Freezing...");
+    while (1);
+  }
+
+  Wire.setClock(4000); //Increase I2C data rate to 400kHz
+
+  myIMU.enableGyroIntegratedRotationVector(50); //Send data update every 50ms
+
+  Serial.println(F("Gyro integrated rotation vector enabled"));
+  Serial.println(F("Output in form i, j, k, real, gyroX, gyroY, gyroZ"));
+
 }
 
 void loop() {  
@@ -49,8 +69,8 @@ void loop() {
       int CH = i+1;
       
       RC_in[i]  = RC_decode(CH);             // decode receiver channel and apply failsafe
-      if(i==0&&RC_in[0] >0){ digitalWrite(led,HIGH); Serial.println(RC_in[i]);}
-      else if(i==0&&RC_in[0] <=0){ digitalWrite(led,LOW);}
+      //if(i==0&&RC_in[0] >0){ digitalWrite(led,HIGH); Serial.println(RC_in[i]);}
+      //else if(i==0&&RC_in[0] <=0){ digitalWrite(led,LOW);}
       
       //print_decimal2percentage(RC_in[i]);   // uncomment to print calibrated  receiver input (+-100%) to serial       
     }
@@ -99,6 +119,33 @@ void loop() {
     }
   }
 
+  if (myIMU.dataAvailable() == true)
+  {
+    float quatI = myIMU.getQuatI();
+    float quatJ = myIMU.getQuatJ();
+    float quatK = myIMU.getQuatK();
+    float quatReal = myIMU.getQuatReal();
+    float gyroX = myIMU.getFastGyroX();
+    float gyroY = myIMU.getFastGyroY();
+    float gyroZ = myIMU.getFastGyroZ();
+
+
+    Serial.print(quatI, 2);
+    Serial.print(F(","));
+    Serial.print(quatJ, 2);
+    Serial.print(F(","));
+    Serial.print(quatK, 2);
+    Serial.print(F(","));
+    Serial.print(quatReal, 2);
+    Serial.print(F(","));
+    Serial.print(gyroX, 2);
+    Serial.print(F(","));
+    Serial.print(gyroY, 2);
+    Serial.print(F(","));
+    Serial.print(gyroZ, 2);
+
+    Serial.println();
+  }
   
   
 }
