@@ -17,7 +17,7 @@ unsigned long now;                        // timing variables to update  data at
 unsigned long rc_update;
 const  int channels = 5;                   // specify the number of receiver channels
 float  RC_in[channels];                    // an array to store the calibrated input from  receiver 
-int servo_channels[] = {8,9,10,A0,A1};
+int servo_channels[] = {8,9,10,11,12};
 Servo servos[channels];
 
 
@@ -46,7 +46,7 @@ void setup() {
     while (1);
   }
 
-  Wire.setClock(4000); //Increase I2C data rate to 400kHz
+  Wire.setClock(3400); //Increase I2C data rate to 400kHz
 
   myIMU.enableGyroIntegratedRotationVector(50); //Send data update every 50ms
 
@@ -125,26 +125,23 @@ void loop() {
     float quatJ = myIMU.getQuatJ();
     float quatK = myIMU.getQuatK();
     float quatReal = myIMU.getQuatReal();
-    float gyroX = myIMU.getFastGyroX();
-    float gyroY = myIMU.getFastGyroY();
-    float gyroZ = myIMU.getFastGyroZ();
+
+    // Calculate pitch, yaw, and roll angles
+    float pitch = asin(2.0f * (quatReal * quatI + quatJ * quatK));
+    float yaw = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ));
+    float roll = atan2(2.0f * (quatReal * quatK - quatI * quatJ), 1.0f - 2.0f * (quatJ * quatJ + quatK * quatK));
+
+    // Convert angles from radians to degrees
+    pitch = pitch * 180.0 / PI;
+    yaw = yaw * 180.0 / PI;
+    roll = roll * 180.0 / PI;
 
 
-    Serial.print(quatI, 2);
+    Serial.print(pitch, 2);
     Serial.print(F(","));
-    Serial.print(quatJ, 2);
+    Serial.print(yaw, 2);
     Serial.print(F(","));
-    Serial.print(quatK, 2);
-    Serial.print(F(","));
-    Serial.print(quatReal, 2);
-    Serial.print(F(","));
-    Serial.print(gyroX, 2);
-    Serial.print(F(","));
-    Serial.print(gyroY, 2);
-    Serial.print(F(","));
-    Serial.print(gyroZ, 2);
-
-    Serial.println();
+    Serial.println(roll, 2);
   }
   
   
