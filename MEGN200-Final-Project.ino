@@ -25,12 +25,12 @@ double RollSetpoint, RollInput, RollOutput;     // Roll setpoint should be aroun
 double PitchSetpoint, PitchInput, PitchOutput;  // Pitch setpoint will be set when autopilot is activated and will be the default angle of attack.
 
 //Define the aggressive and conservative Tuning Parameters for roll
-double rollKp1 = 0.01, rollKi1 = 0.002, rollKd1 = 0.0001;
-double rollKp2 = 0.04, rollKi2 = 0.003, rollKd2 = 0.0001;
+double rollKp1 = 0.01, rollKi1 = 0.000001, rollKd1 = 0.000001;
+double rollKp2 = 0.04, rollKi2 = 0.000, rollKd2 = 0.000;
 
 //Define the aggressive and conservative Tuning Parameters for pitch
-double pitchKp1 = 0.01, pitchKi1 = 0.002, pitchKd1 = 0.0001;
-double pitchKp2 = 0.04, pitchKi2 = 0.003, pitchKd2 = 0.0001;
+double pitchKp1 = 0.01, pitchKi1 = 0.000001, pitchKd1 = 0.000001;
+double pitchKp2 = 0.04, pitchKi2 = 0.000, pitchKd2 = 0.000;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&RollInput, &RollOutput, &RollSetpoint, rollKp1, rollKi1, rollKd1, DIRECT);
@@ -72,7 +72,9 @@ void setup() {
   myIMU.enableGyroIntegratedRotationVector(50);  //Send data update every 50ms
 
   rollPID.SetMode(AUTOMATIC);
+  rollPID.SetOutputLimits(-1, 1);
   pitchPID.SetMode(AUTOMATIC);
+  pitchPID.SetOutputLimits(-1, 1);
 }
 
 void loop() {
@@ -159,6 +161,15 @@ void loop() {
     servos[3].writeMicroseconds(calc_uS(RC_in[3], 3));
     servos[1].writeMicroseconds(calc_uS(RollOutput, 1));
     servos[2].writeMicroseconds(calc_uS(PitchOutput, 2));
+    /*
+    Serial.print(pitch, 2);
+    Serial.print(F(","));
+    Serial.print(PitchOutput, 2);
+    Serial.print(F(","));
+    Serial.print(roll, 2);
+    Serial.print(F(","));
+    Serial.println(RollOutput,2);
+    */
   }
 }
 
