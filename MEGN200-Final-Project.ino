@@ -26,11 +26,11 @@ double PitchSetpoint, PitchInput, PitchOutput;  // Pitch setpoint will be set wh
 
 //Define the aggressive and conservative Tuning Parameters for roll
 double rollKp1 = 0.01, rollKi1 = 0.002, rollKd1 = 0.0001;
-double rollKp2 = 0.01, rollKi2 = 0.002, rollKd2 = 0.0001;
+double rollKp2 = 0.04, rollKi2 = 0.003, rollKd2 = 0.0001;
 
 //Define the aggressive and conservative Tuning Parameters for pitch
 double pitchKp1 = 0.01, pitchKi1 = 0.002, pitchKd1 = 0.0001;
-double pitchKp2 = 0.01, pitchKi2 = 0.002, pitchKd2 = 0.0001;
+double pitchKp2 = 0.04, pitchKi2 = 0.003, pitchKd2 = 0.0001;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&RollInput, &RollOutput, &RollSetpoint, rollKp1, rollKi1, rollKd1, DIRECT);
@@ -63,16 +63,13 @@ void setup() {
   Wire.begin();
   if (myIMU.begin() == false) {
     Serial.println("BNO080 not detected at default I2C address. Check your jumpers and the hookup guide. Freezing...");
-    while (1)
-      ;
+    digitalWrite(led,HIGH);
+    while (1);
   }
 
   Wire.setClock(3400);  //Increase I2C data rate to 3.4kHz
 
   myIMU.enableGyroIntegratedRotationVector(50);  //Send data update every 50ms
-
-  Serial.println(F("Gyro integrated rotation vector enabled"));
-  Serial.println(F("Output in form i, j, k, real, gyroX, gyroY, gyroZ"));
 
   rollPID.SetMode(AUTOMATIC);
   pitchPID.SetMode(AUTOMATIC);
@@ -92,7 +89,7 @@ void loop() {
 
       RC_in[i] = RC_decode(i);  // decode receiver channel and apply failsafe
     }
-    flightMode = -((int)RC_in[channels - 1]) + 1;  // More efficent conversion to flight mode based on switch position
+    flightMode = -(round(RC_in[channels - 1])) + 1;  // More efficent conversion to flight mode based on switch position
     if(flightMode != oldflightMode){
       //only update pid values when necesarry;
       oldflightMode = flightMode;
@@ -139,7 +136,9 @@ void loop() {
     Serial.print(F(","));
     Serial.print(yaw, 2);
     Serial.print(F(","));
-    Serial.println(roll, 2);
+    Serial.print(roll, 2);
+    Serial.print(F(","));
+    Serial.println(flightMode);
     */
   }
 
