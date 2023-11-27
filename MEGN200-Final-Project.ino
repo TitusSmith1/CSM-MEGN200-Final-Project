@@ -108,10 +108,14 @@ void loop() {
       //only update pid values when necesarry;
       oldflightMode = flightMode;
       if(flightMode==1){
+        RollSetpoint = 0;
+        PitchSetpoint = pitch;
         rollPID.SetTunings(rollKp1,rollKi1,rollKd1);
         pitchPID.SetTunings(pitchKp1,pitchKi1,pitchKd1);
       }
       else if(flightMode==2){
+        RollSetpoint = 0;
+        PitchSetpoint = pitch;
         rollPID.SetTunings(rollKp2,rollKi2,rollKd2);
         pitchPID.SetTunings(pitchKp2,pitchKi2,pitchKd2);
       }
@@ -134,7 +138,7 @@ void loop() {
         LNG = gps.location.lng();    // stor the longitude
         //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
       }
-      //displayInfo(); // print out data to serial
+      displayInfo(); // print out data to serial
     }
   }
 
@@ -146,8 +150,8 @@ void loop() {
 
     // Calculate pitch, yaw, and roll angles
     // Convert angles from radians to degrees
-    roll = asin(2.0f * (quatReal * quatI + quatJ * quatK)) * 57.32;  //57.32 is ratio of degress to rad
-    pitch = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ)) * 57.32;
+    pitch = asin(2.0f * (quatReal * quatI + quatJ * quatK)) * 57.32;  //57.32 is ratio of degress to rad
+    roll = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ)) * 57.32;
     yaw = atan2(2.0f * (quatReal * quatK - quatI * quatJ), 1.0f - 2.0f * (quatJ * quatJ + quatK * quatK)) * 57.32;
 
 
@@ -197,6 +201,8 @@ void displayInfo() {
   Serial.print(LAT, 6);
   Serial.print(F(","));
   Serial.print(LNG, 6);
+  Serial.print(F(","));
+  Serial.print(ALT, 6);
   Serial.println();
 }
 
