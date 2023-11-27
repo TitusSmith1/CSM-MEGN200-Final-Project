@@ -3,17 +3,24 @@
 #include <Wire.h>
 #include <PID_v1.h>
 #include "SparkFun_BNO080_Arduino_Library.h"  // Click here to get the library: http://librarymanager/All#SparkFun_BNO080
+#include <SFE_BMP180.h>
 
 TinyGPSPlus gps;  // the TinyGPS++ object
 BNO080 myIMU;
+SFE_BMP180 bmp180;
 
 float LAT = 0.0000;  // temp values to hold GPS data
 float LNG = 0.0000;
 float ALT = 0.0000;
 
+float P0 = 1013.0;
+double pressure;
+double temperature = 24.12;
+
 const int led = LED_BUILTIN;
 
 unsigned long now;  // timing variables to update  data at a regular interval
+unsigned long bmp_update;
 unsigned long rc_update;
 const int channels = 5;  // specify the number of receiver channels
 float RC_in[channels];   // an array to store the calibrated input from  receiver
@@ -66,6 +73,11 @@ void setup() {
     digitalWrite(led,HIGH);
     while (1);
   }
+  if(bmp180.begin()==false){
+    Serial.println("BMP180 not detected at default I2C address. Freezing...");
+    digitalWrite(led,HIGH);
+    while (1);
+  }
 
   Wire.setClock(3400);  //Increase I2C data rate to 3.4kHz
 
@@ -106,6 +118,12 @@ void loop() {
     }
     // If the switch position is 0 (mode 0)then the value stored in the array is 1
     // If the switch position is 2 (mode 2) then the value stored in the array is -1
+  }
+  if(bmp_update <= now){
+    bmp180.getPressure(pressure,temperature);
+    ALT = bmp180.altitude(pressure, P0);
+    bmp_update = now+bmp180.startPressure(3); //set bmp_update to the future time when we need to read the pressure sensor
+    //the 3 parameter is for max oversampling
   }
 
   // This sketch displays information every time gps data is availible.
