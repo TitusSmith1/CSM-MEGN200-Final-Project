@@ -340,27 +340,27 @@ ISR(PCINT2_vect){                                                 //  this funct
   
   if(CH < 1 || CH > RC_inputs) return 0;     //  if channel number is out of bounds return zero.
   
-  int i = CH - 1;                     
+  int i = CH ;                     
 
   // determine the pulse width calibration for the RC channel. The default is 1000,  1500 and 2000us.
   
   int Min;
-  if(CH <= size_RC_min) Min = RC_min[CH-1];  else Min = 1000;
+  if(CH < size_RC_min) Min = RC_min[CH];  else Min = 1000;
   
   int Mid;
-  if(CH <= size_RC_mid) Mid = RC_mid[CH-1];  else Mid = 1500;
+  if(CH < size_RC_mid) Mid = RC_mid[CH];  else Mid = 1500;
   
   int Max;
-  if(CH <= size_RC_max) Max = RC_max[CH-1];  else Max = 2000;
+  if(CH < size_RC_max) Max = RC_max[CH];  else Max = 2000;
 
   float CH_output;
       
   if(FAILSAFE(CH) == HIGH){                         // If the RC channel is outside of failsafe tolerances  (10-330hz and 500-2500uS)
       if(CH > size_RC_failsafe) CH_output = 0;      //  and if no failsafe position has been defined, set output to neutral
-      else  CH_output = RC_failsafe[i];              // or if defined set the failsafe position  
+      else  CH_output = RC_failsafe[CH];              // or if defined set the failsafe position  
   }
   else{                                             // If the RC signal  is valid
-    CH_output = calibrate(PW[i],Min,Mid,Max);       // calibrate the  pulse width to the range -1 to 1.
+    CH_output = calibrate(PW[CH],Min,Mid,Max);       // calibrate the  pulse width to the range -1 to 1.
   }
   return CH_output;                                 
 
@@ -399,28 +399,27 @@ float calibrate(float Rx,  int Min, int Mid, int Max){
 
 boolean FAILSAFE(int CH){
 
-   int  i = CH-1;
    boolean failsafe_flag = LOW;
         
-       if(pwmFlag[i]  == 1)                             // if a new pulse has been measured.
+       if(pwmFlag[CH]  == 1)                             // if a new pulse has been measured.
          {
-            pwmFlag[i] = 0;                            // set flag to zero
+            pwmFlag[CH] = 0;                            // set flag to zero
       
-            if(pwmPeriod[i] > 100000)                  // if time between pulses  indicates a pulse rate of less than 10Hz   
+            if(pwmPeriod[CH] > 100000)                  // if time between pulses  indicates a pulse rate of less than 10Hz   
             {
               failsafe_flag  = HIGH;                       
             }
-            else if(pwmPeriod[i]  < 3000)               // or if time between pulses indicates a pulse rate greater  than 330Hz   
+            else if(pwmPeriod[CH]  < 3000)               // or if time between pulses indicates a pulse rate greater  than 330Hz   
             {
               failsafe_flag = HIGH;                             
             }
 
-            if(PW[i] < 500 || PW[i] > 2500)           // if  pulswidth is outside of the range 500-2500ms
+            if(PW[CH] < 500 || PW[CH] > 2500)           // if  pulswidth is outside of the range 500-2500ms
             {
               failsafe_flag  = HIGH;                        
             }   
          }
-        else  if (micros() - pwmTimer[i] > 100000)     // if there is no new pulswidth measurement  within 100ms (10hz)
+        else  if (micros() - pwmTimer[CH] > 100000)     // if there is no new pulswidth measurement  within 100ms (10hz)
         {
           failsafe_flag = HIGH;                      
         }
@@ -460,15 +459,14 @@ float  pin_pwm;
 float pin_period;
 
 boolean PWM_read(int CH){
-  if(CH < 1 &&  CH > num_ch) return false;
-  int i = CH-1;
-  boolean avail = pwmFlag[i];
+  if(CH < 0 &&  CH >= num_ch) return false;
+  boolean avail = pwmFlag[CH];
   if (avail == HIGH){
-    pwmFlag[i] = LOW;
+    pwmFlag[CH] = LOW;
     noInterrupts();
-    pin_time  = pwmTimer[i];
-    pin_pwm = PW[i];
-    pin_period = pwmPeriod[i];
+    pin_time  = pwmTimer[CH];
+    pin_pwm = PW[CH];
+    pin_period = pwmPeriod[CH];
     interrupts();
   }
   return avail;

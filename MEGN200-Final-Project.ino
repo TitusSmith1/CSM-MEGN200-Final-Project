@@ -2,19 +2,16 @@
 #include <Servo.h>  // include the servo library  to control the servos
 #include <Wire.h>
 #include <PID_v1.h>
-
 #include "SparkFun_BNO080_Arduino_Library.h"  // Click here to get the library: http://librarymanager/All#SparkFun_BNO080
-BNO080 myIMU;
 
-uint16_t flightMode = 0;
+TinyGPSPlus gps;  // the TinyGPS++ object
+BNO080 myIMU;
 
 float LAT = 0.0000;  // temp values to hold GPS data
 float LNG = 0.0000;
 float ALT = 0.0000;
 
 const int led = LED_BUILTIN;
-
-TinyGPSPlus gps;  // the TinyGPS++ object
 
 unsigned long now;  // timing variables to update  data at a regular interval
 unsigned long rc_update;
@@ -43,6 +40,8 @@ float roll;
 float pitch;
 float yaw;
 
+uint16_t flightMode = 0;
+uint16_t oldflightMode = 0;
 
 boolean servo_dir[] = { 1, 1, 1, 1, 1 };              // Direction: 1 is normal,  -1 is reverse
 float servo_rates[] = { 1, 1, 1, 1, 1 };              // Rates: range 0 to 2 (1 = +-500us  (NORMAL), 2 = +-1000us (MAX)): The amount of servo deflection in both directions
@@ -90,63 +89,35 @@ void loop() {
     //print_RCpwm();                        // uncommment to print raw  data from receiver to serial
 
     for (int i = 0; i < channels; i++) {  // run through each RC channel
-      int CH = i + 1;
 
-      RC_in[i] = RC_decode(CH);  // decode receiver channel and apply failsafe
-      //if(i==0&&RC_in[0] >0){ digitalWrite(led,HIGH); Serial.println(RC_in[i]);}
-      //else if(i==0&&RC_in[0] <=0){ digitalWrite(led,LOW);}
-
-      //print_decimal2percentage(RC_in[i]);   // uncomment to print calibrated  receiver input (+-100%) to serial
+      RC_in[i] = RC_decode(i);  // decode receiver channel and apply failsafe
     }
-    if (RC_in[channels-1] < -0.5) {
-      digitalWrite(led, HIGH);
-      flightMode = 2;
-    } else if (RC_in[channels-1] > 0.5) {
-      digitalWrite(led, LOW);
-      flightMode = 0;
-    } else {
-      digitalWrite(led, LOW);
-      flightMode = 1;
+    flightMode = -((int)RC_in[channels - 1]) + 1;  // More efficent conversion to flight mode based on switch position
+    if(flightMode != oldflightMode){
+      //only update pid values when necesarry;
+      oldflightMode = flightMode;
+      if(flightMode==1){
+        rollPID.SetTunings(rollKp1,rollKi1,rollKd1);
+        pitchPID.SetTunings(pitchKp1,pitchKi1,pitchKd1);
+      }
+      else if(flightMode==2){
+        rollPID.SetTunings(rollKp2,rollKi2,rollKd2);
+        pitchPID.SetTunings(pitchKp2,pitchKi2,pitchKd2);
+      }
     }
-    //Serial.println();                       // uncomment when printing calibrated receiver input to serial.
-    /*
-      int servo1_uS;      // variables to store the pulse widths to be sent to the servo
-      int  servo2_uS;      
-      
-      if (servo_mix_on == true){              // MIXING  ON
-        
-        float mix1 = RC_in[1] - RC_in[2];     // Channel 2 (ELV)  - Channel 3 (AIL)
-        float mix2 = RC_in[1] + RC_in[2];     // Channel 2  (ELV) + Channel 3 (AIL)
-  
-        if(mix1 > 1) mix1 = 1;                //  limit mixer output to +-1
-        else if(mix1 < -1) mix1 = -1;
-  
-        if(mix2  > 1) mix2 = 1;                // limit mixer output to +-1
-        else if(mix2  < -1) mix2 = -1;  
-  
-        // Calculate the pulse widths for the servos
-      
-        servo1_uS = calc_uS(mix1, 0);         // apply the servo rates,  direction and sub_trim for servo 1, and convert to a RC pulsewidth (microseconds,  uS)
-        servo2_uS = calc_uS(mix2, 1);         // apply the servo rates, direction  and sub_trim for servo 2, and convert to a RC pulsewidth (microseconds, uS)
-            
-      }
-      else{                                   // MIXING  OFF
-        servo1_uS = calc_uS(RC_in[1],0);      // apply the servo rates, direction  and sub_trim for servo 1, and convert to a RC pulsewidth (microseconds, uS)
-        servo2_uS = calc_uS(RC_in[2],1);      // apply the servo rates, direction  and sub_trim for servo 1, and convert to a RC pulsewidth (microseconds, uS)
-      }
-
-      servo1.writeMicroseconds(servo1_uS);   // write the pulsewidth  to the servo.
-      servo2.writeMicroseconds(servo2_uS);   // write the pulsewidth  to the servo. 
-      */
+    // If the switch position is 0 (mode 0)then the value stored in the array is 1
+    // If the switch position is 2 (mode 2) then the value stored in the array is -1
   }
 
-  // If there is any GPS data availible read it out with optional printout parameter
-  //if (Serial.available() > 0) getGPS(false);
-
-  // This sketch displays information every time a new sentence is correctly encoded.
+  // This sketch displays information every time gps data is availible.
   if (Serial.available() > 0) {
     if (gps.encode(Serial.read())) {
-      //displayInfo();
+      if (gps.location.isValid()) {  // check if the data is valid
+        LAT = gps.location.lat();    // store the lattidude
+        LNG = gps.location.lng();    // stor the longitude
+        //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
+      }
+      //displayInfo(); // print out data to serial
     }
   }
 
@@ -157,23 +128,19 @@ void loop() {
     float quatReal = myIMU.getQuatReal();
 
     // Calculate pitch, yaw, and roll angles
-    roll = asin(2.0f * (quatReal * quatI + quatJ * quatK));
-    pitch = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ));
-    yaw = atan2(2.0f * (quatReal * quatK - quatI * quatJ), 1.0f - 2.0f * (quatJ * quatJ + quatK * quatK));
-
     // Convert angles from radians to degrees
-    pitch = pitch * 180.0 / PI;
-    yaw = yaw * 180.0 / PI;
-    roll = roll * 180.0 / PI;
+    roll = asin(2.0f * (quatReal * quatI + quatJ * quatK)) * 57.32;  //57.32 is ratio of degress to rad
+    pitch = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ)) * 57.32;
+    yaw = atan2(2.0f * (quatReal * quatK - quatI * quatJ), 1.0f - 2.0f * (quatJ * quatJ + quatK * quatK)) * 57.32;
 
 
-    
+    /*
     Serial.print(pitch, 2);
     Serial.print(F(","));
     Serial.print(yaw, 2);
     Serial.print(F(","));
     Serial.println(roll, 2);
-    
+    */
   }
 
   if (flightMode == 0) {
@@ -182,8 +149,9 @@ void loop() {
     for (int i = 0; i < channels - 1; i++) {
       servos[i].writeMicroseconds(calc_uS(RC_in[i], i));
     }
-  } else if (flightMode == 1) {
-    //Serial.println("Flight Mode 1");
+  } else {
+    //Serial.println("Flight Mode 1 or 2");
+    //the PID gains are different for mode 1 and mode 2 but we dont change that here.
     PitchInput = pitch;
     RollInput = roll;
     rollPID.Compute();
@@ -192,56 +160,15 @@ void loop() {
     servos[3].writeMicroseconds(calc_uS(RC_in[3], 3));
     servos[1].writeMicroseconds(calc_uS(RollOutput, 1));
     servos[2].writeMicroseconds(calc_uS(PitchOutput, 2));
-  } else {
-    //Serial.println("Flight Mode 2");
-    for (int i = 0; i < channels - 1; i++) {
-      servos[i].writeMicroseconds(1000);
-    }
   }
 }
 
-/*
-bool startupGPS(){
-  // See if we have recieved any valid GPS locations yet.
-  return LAT !=0.0000;
-}
-
-void getGPS(bool printout) {
-  // Update gps location
-  if (gps.encode(Serial.read())) {// if there is data availible from the GPS module
-    if (gps.location.isValid()) { // check if the data is valid
-      LAT = gps.location.lat(); // store the lattidude
-      LNG = gps.location.lng();// stor the longitude
-      ALT = gps.altitude.meters();
-      if (printout){ // if the printout parameter is true, print out data to serial/
-        Serial.print(F("- latitude: "));
-        Serial.println(LAT,6);// Print out latitude and longitude to serial (the 6 specifies 6 decimal places).
-        Serial.print(F("- longitude: "));
-        Serial.println(LNG,6);
-        Serial.println(ALT,6);
-      }
-
-    }
-    else if (printout) {// if the data from the GPS is invalid and printout is true.
-      Serial.println(F("- location: INVALID"));
-    }
-  }
-}
-*/
 
 void displayInfo() {
   Serial.print(F("Location: "));
-  if (gps.location.isValid()) {
-    LAT = gps.location.lat();  // store the lattidude
-    LNG = gps.location.lng();  // stor the longitude
-    //ALT = gps.altitude.meters();
-    Serial.print(LAT, 6);
-    Serial.print(F(","));
-    Serial.print(LNG, 6);
-  } else {
-    Serial.print(F("GPS INVALID"));
-  }
-
+  Serial.print(LAT, 6);
+  Serial.print(F(","));
+  Serial.print(LNG, 6);
   Serial.println();
 }
 
