@@ -32,12 +32,12 @@ double RollSetpoint, RollInput, RollOutput;     // Roll setpoint should be aroun
 double PitchSetpoint, PitchInput, PitchOutput;  // Pitch setpoint will be set when autopilot is activated and will be the default angle of attack.
 
 //Define the aggressive and conservative Tuning Parameters for roll
-double rollKp1 = 0.01, rollKi1 = 0.000001, rollKd1 = 0.000001;
-double rollKp2 = 0.04, rollKi2 = 0.000, rollKd2 = 0.000;
+double rollKp1 = 0.01, rollKi1 = 0.000, rollKd1 = 0.0001;
+double rollKp2 = 0.04, rollKi2 = 0.000, rollKd2 = 0.0004;
 
 //Define the aggressive and conservative Tuning Parameters for pitch
-double pitchKp1 = 0.01, pitchKi1 = 0.000001, pitchKd1 = 0.000001;
-double pitchKp2 = 0.04, pitchKi2 = 0.000, pitchKd2 = 0.000;
+double pitchKp1 = 0.01, pitchKi1 = 0.000, pitchKd1 = 0.0001;
+double pitchKp2 = 0.04, pitchKi2 = 0.000, pitchKd2 = 0.0004;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&RollInput, &RollOutput, &RollSetpoint, rollKp1, rollKi1, rollKd1, DIRECT);
