@@ -151,7 +151,7 @@
 const int pwmPIN[]={2,3,4,5,6}; // an array to identify the PWM input  pins (the array can be any length) 
                                   // first  pin is channel 1, second is channel 2...etc
 
-int RC_inputs = 0;                //  The number of pins in pwmPIN that are connected to an RC receiver. Addition pins  not connected to an RC receiver could be used for any other purpose i.e. detecting  the echo pulse on an HC-SR04 ultrasonic distance sensor
+int RC_inputs = 5;                //  The number of pins in pwmPIN that are connected to an RC receiver. Addition pins  not connected to an RC receiver could be used for any other purpose i.e. detecting  the echo pulse on an HC-SR04 ultrasonic distance sensor
                                   //  When 0, it will automatically update to the number of pins specified in pwmPIN[]  after calling setup_pwmRead().                                                
 //  Calibration of each RC channel:
  
@@ -338,9 +338,7 @@ ISR(PCINT2_vect){                                                 //  this funct
 
   float RC_decode(int CH){
   
-  if(CH < 1 || CH > RC_inputs) return 0;     //  if channel number is out of bounds return zero.
-  
-  int i = CH ;                     
+  if(CH < 0 || CH >= RC_inputs) return 0;     //  if channel number is out of bounds return zero.                    
 
   // determine the pulse width calibration for the RC channel. The default is 1000,  1500 and 2000us.
   

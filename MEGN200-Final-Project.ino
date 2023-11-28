@@ -62,7 +62,7 @@ void setup() {
   pinMode(led, OUTPUT);
   digitalWrite(led, LOW);
   Serial.println("Startup");
-  for (int i = 0; i < channels; i++) {
+  for (int i = 0; i < channels-1; i++) {
     servos[i].attach(servo_channels[i]);
   }
 
@@ -103,6 +103,7 @@ void loop() {
 
       RC_in[i] = RC_decode(i);  // decode receiver channel and apply failsafe
     }
+
     flightMode = -(round(RC_in[channels - 1])) + 1;  // More efficent conversion to flight mode based on switch position
     if(flightMode != oldflightMode){
       //only update pid values when necesarry;
@@ -114,7 +115,7 @@ void loop() {
         pitchPID.SetTunings(pitchKp1,pitchKi1,pitchKd1);
       }
       else if(flightMode==2){
-        RollSetpoint = 0;
+        RollSetpoint = roll;
         PitchSetpoint = pitch;
         rollPID.SetTunings(rollKp2,rollKi2,rollKd2);
         pitchPID.SetTunings(pitchKp2,pitchKi2,pitchKd2);
@@ -138,7 +139,7 @@ void loop() {
         LNG = gps.location.lng();    // stor the longitude
         //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
       }
-      displayInfo(); // print out data to serial
+      //displayInfo(); // print out data to serial
     }
   }
 
@@ -210,12 +211,11 @@ void displayInfo() {
 
 int calc_uS(float cmd, int servo) {  //  cmd = commanded position +-100%
                                      //  servo = servo num (to apply correct direction, rates and trim)
-  int i = servo;
-  float dir;
-  if (servo_dir[i] == 0) dir = -1;
+  int16_t dir;
+  if (servo_dir[servo] == 0) dir = -1;
   else dir = 1;  //  set the direction of servo travel
 
-  cmd = 1500 + (cmd * servo_rates[i] * dir + servo_subtrim[i]) * 500;  // apply servo rates and sub trim, then convert to a  uS value
+  cmd = 1500 + (cmd * servo_rates[servo] * dir + servo_subtrim[servo]) * 500;  // apply servo rates and sub trim, then convert to a  uS value
 
   if (cmd > 2500) cmd = 2500;  //  limit pulsewidth to the range 500 to 2500us
   else if (cmd < 500) cmd = 500;
