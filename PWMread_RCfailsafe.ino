@@ -168,7 +168,7 @@ int RC_max[6] =  { 1800,   1844,   1948,   1928,   1956};
 
 // fail safe positions
 
-float  RC_failsafe[] = {0.00, 0.00, 0.5, 0.00, -0.25};
+float  RC_failsafe[] = {-1.20, 0.00, -0.5, 0.00,0.00};
    
 // enter a failsafe  position (in the range of -+1) for each RC channel in case radio signal is lost
 //  if the array is the incorrect length for the number of RC channels, the failsafe  will default to neutral i.e. 0. 

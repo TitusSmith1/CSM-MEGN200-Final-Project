@@ -54,6 +54,8 @@ boolean servo_dir[] = { 1, 1, 1, 1, 1 };              // Direction: 1 is normal,
 float servo_rates[] = { 1, 1, 1, 1, 1 };              // Rates: range 0 to 2 (1 = +-500us  (NORMAL), 2 = +-1000us (MAX)): The amount of servo deflection in both directions
 float servo_subtrim[] = { 0.0, 0.0, 0.0, 0.0, 0.0 };  // Subtrimrange -1 to +1 (-1 = 1000us, 0 = 1500us,  1 = 2000us): The neutral position of the servo
 //boolean servo_mix_on = true;
+float RollTrim = 0;
+float PitchTrim= 0;
 
 void setup() {
   setup_pwmRead();
@@ -109,12 +111,16 @@ void loop() {
       //only update pid values when necesarry;
       oldflightMode = flightMode;
       if(flightMode==1){
+        RollTrim = RC_in[1];
+        PitchTrim = RC_in[2];
         RollSetpoint = 0;
         PitchSetpoint = pitch;
         rollPID.SetTunings(rollKp1,rollKi1,rollKd1);
         pitchPID.SetTunings(pitchKp1,pitchKi1,pitchKd1);
       }
       else if(flightMode==2){
+        RollTrim = RC_in[1];
+        PitchTrim = RC_in[2];
         RollSetpoint = roll;
         PitchSetpoint = pitch;
         rollPID.SetTunings(rollKp2,rollKi2,rollKd2);
@@ -182,8 +188,8 @@ void loop() {
     pitchPID.Compute();
     servos[0].writeMicroseconds(calc_uS(RC_in[0], 0));
     servos[3].writeMicroseconds(calc_uS(RC_in[3], 3));
-    servos[1].writeMicroseconds(calc_uS(RollOutput, 1));
-    servos[2].writeMicroseconds(calc_uS(PitchOutput, 2));
+    servos[1].writeMicroseconds(calc_uS(RollOutput+RollTrim, 1));// Make sure to turn off autopilot before steering
+    servos[2].writeMicroseconds(calc_uS(PitchOutput+PitchTrim, 2));// This part is just to make trim effective
     /*
     Serial.print(pitch, 2);
     Serial.print(F(","));
