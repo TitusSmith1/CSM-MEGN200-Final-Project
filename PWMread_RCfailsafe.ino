@@ -151,7 +151,7 @@
 const int pwmPIN[]={2,3,4,5,6}; // an array to identify the PWM input  pins (the array can be any length) 
                                   // first  pin is channel 1, second is channel 2...etc
 
-int RC_inputs = 5;                //  The number of pins in pwmPIN that are connected to an RC receiver. Addition pins  not connected to an RC receiver could be used for any other purpose i.e. detecting  the echo pulse on an HC-SR04 ultrasonic distance sensor
+int RC_inputs = 4;                //  The number of pins in pwmPIN that are connected to an RC receiver. Addition pins  not connected to an RC receiver could be used for any other purpose i.e. detecting  the echo pulse on an HC-SR04 ultrasonic distance sensor
                                   //  When 0, it will automatically update to the number of pins specified in pwmPIN[]  after calling setup_pwmRead().                                                
 //  Calibration of each RC channel:
  
@@ -161,10 +161,10 @@ int RC_inputs = 5;                //  The number of pins in pwmPIN that are conn
 // if the RC_min[], RC_mid[], RC_max[] are empty or have  missing data the calibration will default to min 1000us, mid 1500us and max 2000us.
 
 //SANWA  6CH 40MHz with corona RP6D1  
-//                  THR     ALR     PIT    RUD    SWITCH
-int RC_min[6] = {   988,    916,   1024,   1004,   1032};
-int  RC_mid[6] = { 1472,   1380,   1492,   1464,   1496};
-int RC_max[6] =  { 1800,   1844,   1948,   1928,   1956};
+//                  THR     ALR     PIT    SWITCH
+int RC_min[6] = {   988,    916,   1024,   1032};
+int  RC_mid[6] = { 1472,   1380,   1492,   1496};
+int RC_max[6] =  { 1800,   1844,   1948,   1956};
 
 // fail safe positions
 

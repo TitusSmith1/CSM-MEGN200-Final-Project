@@ -22,9 +22,9 @@ const int led = LED_BUILTIN;
 unsigned long now;  // timing variables to update  data at a regular interval
 unsigned long bmp_update;
 unsigned long rc_update;
-const int channels = 5;  // specify the number of receiver channels
+const int channels = 4;  // specify the number of receiver channels
 float RC_in[channels];   // an array to store the calibrated input from  receiver
-int servo_channels[] = { 8, 9, 10, 11 };
+int servo_channels[] = { 8, 9, 10 };
 Servo servos[channels - 1];
 
 //Define Variables we'll be connecting to
@@ -50,10 +50,14 @@ float yaw;
 uint16_t flightMode = 0;
 uint16_t oldflightMode = 0;
 
+float gpstol = 0.0001; //0.0001 coresponds to 10m approxamately
+float targetGPS[] = {39.74986,-105.22535};
+bool foundTarget = false;
+
+float startGPS[] = {0.00,0.00};
+bool hasInitGPS =  false;
+
 boolean servo_dir[] = { 1, 1, 1, 1, 1 };              // Direction: 1 is normal,  -1 is reverse
-float servo_rates[] = { 1, 1, 1, 1, 1 };              // Rates: range 0 to 2 (1 = +-500us  (NORMAL), 2 = +-1000us (MAX)): The amount of servo deflection in both directions
-float servo_subtrim[] = { 0.0, 0.0, 0.0, 0.0, 0.0 };  // Subtrimrange -1 to +1 (-1 = 1000us, 0 = 1500us,  1 = 2000us): The neutral position of the servo
-//boolean servo_mix_on = true;
 float RollTrim = 0;
 float PitchTrim= 0;
 
@@ -144,8 +148,13 @@ void loop() {
         LAT = gps.location.lat();    // store the lattidude
         LNG = gps.location.lng();    // stor the longitude
         //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
+        if(!hasInitGPS && LAT!= 0.000){
+          hasInitGPS = true;
+          startGPS = {LAT,LNG};
+        }
       }
       //displayInfo(); // print out data to serial
+      
     }
   }
 
@@ -190,15 +199,6 @@ void loop() {
     servos[3].writeMicroseconds(calc_uS(RC_in[3], 3));
     servos[1].writeMicroseconds(calc_uS(RollOutput+RollTrim, 1));// Make sure to turn off autopilot before steering
     servos[2].writeMicroseconds(calc_uS(PitchOutput+PitchTrim, 2));// This part is just to make trim effective
-    /*
-    Serial.print(pitch, 2);
-    Serial.print(F(","));
-    Serial.print(PitchOutput, 2);
-    Serial.print(F(","));
-    Serial.print(roll, 2);
-    Serial.print(F(","));
-    Serial.println(RollOutput,2);
-    */
   }
 }
 
@@ -221,7 +221,7 @@ int calc_uS(float cmd, int servo) {  //  cmd = commanded position +-100%
   if (servo_dir[servo] == 0) dir = -1;
   else dir = 1;  //  set the direction of servo travel
 
-  cmd = 1500 + (cmd * servo_rates[servo] * dir + servo_subtrim[servo]) * 500;  // apply servo rates and sub trim, then convert to a  uS value
+  cmd = 1500 + cmd* 500;  // apply servo rates and sub trim, then convert to a  uS value
 
   if (cmd > 2500) cmd = 2500;  //  limit pulsewidth to the range 500 to 2500us
   else if (cmd < 500) cmd = 500;
