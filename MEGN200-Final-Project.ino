@@ -36,8 +36,8 @@ double rollKp1 = 0.01, rollKi1 = 0.000, rollKd1 = 0.0001;
 double rollKp2 = 0.04, rollKi2 = 0.000, rollKd2 = 0.0004;
 
 //Define the aggressive and conservative Tuning Parameters for pitch
-double pitchKp1 = 0.01, pitchKi1 = 0.000, pitchKd1 = 0.0001;
-double pitchKp2 = 0.04, pitchKi2 = 0.000, pitchKd2 = 0.0004;
+double pitchKp1 = 0.03, pitchKi1 = 0.000, pitchKd1 = 0.0003;
+double pitchKp2 = 0.035, pitchKi2 = 0.000, pitchKd2 = 0.00035;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&RollInput, &RollOutput, &RollSetpoint, rollKp1, rollKi1, rollKd1, DIRECT);
