@@ -31,13 +31,13 @@ Servo servos[channels - 1];
 double RollSetpoint, RollInput, RollOutput;     // Roll setpoint should be around 0 but can set to other to make plane circle.
 double PitchSetpoint, PitchInput, PitchOutput;  // Pitch setpoint will be set when autopilot is activated and will be the default angle of attack.
 
-//Define the aggressive and conservative Tuning Parameters for roll
-double rollKp1 = 0.01, rollKi1 = 0.000, rollKd1 = 0.0001;
-double rollKp2 = 0.04, rollKi2 = 0.000, rollKd2 = 0.0004;
+//Define the aggressie and conservative Tuning Parameters for roll
+double rollKp1 = 0.02, rollKi1 = 0.000, rollKd1 = 0.0003;
+double rollKp2 = 0.025, rollKi2 = 0.000, rollKd2 = 0.00035;
 
 //Define the aggressive and conservative Tuning Parameters for pitch
-double pitchKp1 = 0.03, pitchKi1 = 0.000, pitchKd1 = 0.0003;
-double pitchKp2 = 0.035, pitchKi2 = 0.000, pitchKd2 = 0.00035;
+double pitchKp1 = 0.02, pitchKi1 = 0.000, pitchKd1 = 0.0003;
+double pitchKp2 = 0.025, pitchKi2 = 0.000, pitchKd2 = 0.00035;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&RollInput, &RollOutput, &RollSetpoint, rollKp1, rollKi1, rollKd1, DIRECT);
@@ -56,6 +56,14 @@ float servo_subtrim[] = { 0.0, 0.0, 0.0, 0.0, 0.0 };  // Subtrimrange -1 to +1 (
 //boolean servo_mix_on = true;
 float RollTrim = 0;
 float PitchTrim= 0;
+
+float max_roll = 30;
+float max_pitch = 15;
+
+float targetGPS[] = {39.749691, -105.22510};
+float currentGPS[] = {39.749525, -105.22510};
+
+float angle = 0.00;
 
 void setup() {
   setup_pwmRead();
@@ -121,7 +129,7 @@ void loop() {
       else if(flightMode==2){
         RollTrim = RC_in[1];
         PitchTrim = RC_in[2];
-        RollSetpoint = roll;
+        RollSetpoint = 0;
         PitchSetpoint = pitch;
         rollPID.SetTunings(rollKp2,rollKi2,rollKd2);
         pitchPID.SetTunings(pitchKp2,pitchKi2,pitchKd2);
@@ -141,11 +149,14 @@ void loop() {
   if (Serial.available() > 0) {
     if (gps.encode(Serial.read())) {
       if (gps.location.isValid()) {  // check if the data is valid
+        digitalWrite(led,HIGH);
         LAT = gps.location.lat();    // store the lattidude
         LNG = gps.location.lng();    // stor the longitude
+        currentGPS[0] = LAT;
+        currentGPS[1] = LNG;
         //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
       }
-      //displayInfo(); // print out data to serial
+      displayInfo(); // print out data to serial
     }
   }
 
@@ -160,14 +171,17 @@ void loop() {
     pitch = asin(2.0f * (quatReal * quatI + quatJ * quatK)) * 57.32;  //57.32 is ratio of degress to rad
     roll = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ)) * 57.32;
     yaw = atan2(2.0f * (quatReal * quatK - quatI * quatJ), 1.0f - 2.0f * (quatJ * quatJ + quatK * quatK)) * 57.32;
-
+    angle = -atan2(targetGPS[1]-currentGPS[1],targetGPS[0]-currentGPS[0])* 57.32;
 
     /*
-    Serial.print(pitch, 2);
-    Serial.print(F(","));
+    //Serial.print(pitch, 2);
+    //Serial.print(F(","));
     Serial.print(yaw, 2);
     Serial.print(F(","));
-    Serial.print(roll, 2);
+    //Serial.print(roll, 2);
+    Serial.print(angle,4);
+    Serial.print(F(","));
+    Serial.print(angle-yaw,4);
     Serial.print(F(","));
     Serial.println(flightMode);
     */
@@ -183,7 +197,7 @@ void loop() {
     //Serial.println("Flight Mode 1 or 2");
     //the PID gains are different for mode 1 and mode 2 but we dont change that here.
     PitchInput = pitch;
-    RollInput = roll;
+    RollInput = roll-constrain(angle-yaw,-60,60)/3*((flightMode+1)%2);
     rollPID.Compute();
     pitchPID.Compute();
     servos[0].writeMicroseconds(calc_uS(RC_in[0], 0));
@@ -191,11 +205,13 @@ void loop() {
     servos[1].writeMicroseconds(calc_uS(RollOutput+RollTrim, 1));// Make sure to turn off autopilot before steering
     servos[2].writeMicroseconds(calc_uS(PitchOutput+PitchTrim, 2));// This part is just to make trim effective
     /*
-    Serial.print(pitch, 2);
+    Serial.print(yaw, 2);
     Serial.print(F(","));
-    Serial.print(PitchOutput, 2);
+    Serial.print(angle, 2);
     Serial.print(F(","));
-    Serial.print(roll, 2);
+    Serial.print(angle-yaw, 2);
+    Serial.print(F(","));
+    Serial.print(RollInput, 2);
     Serial.print(F(","));
     Serial.println(RollOutput,2);
     */
