@@ -60,7 +60,7 @@ float PitchTrim = 0;
 float max_roll = 30;
 float max_pitch = 15;
 
-float targetGPS[] = { 39.749691, -105.22510 };
+float targetGPS[] = { 39.74961, -105.22508 };
 float currentGPS[] = { 39.749525, -105.22510 };
 
 float angle = 0.00;
