@@ -55,15 +55,16 @@ float servo_rates[] = { 1, 1, 1, 1, 1 };              // Rates: range 0 to 2 (1 
 float servo_subtrim[] = { 0.0, 0.0, 0.0, 0.0, 0.0 };  // Subtrimrange -1 to +1 (-1 = 1000us, 0 = 1500us,  1 = 2000us): The neutral position of the servo
 //boolean servo_mix_on = true;
 float RollTrim = 0;
-float PitchTrim= 0;
+float PitchTrim = 0;
 
 float max_roll = 30;
 float max_pitch = 15;
 
-float targetGPS[] = {39.749691, -105.22510};
-float currentGPS[] = {39.749525, -105.22510};
+float targetGPS[] = { 39.749691, -105.22510 };
+float currentGPS[] = { 39.749525, -105.22510 };
 
 float angle = 0.00;
+float targetALT = 1750;
 
 void setup() {
   setup_pwmRead();
@@ -72,7 +73,7 @@ void setup() {
   pinMode(led, OUTPUT);
   digitalWrite(led, LOW);
   Serial.println("Startup");
-  for (int i = 0; i < channels-1; i++) {
+  for (int i = 0; i < channels - 1; i++) {
     servos[i].attach(servo_channels[i]);
   }
 
@@ -80,13 +81,15 @@ void setup() {
   Wire.begin();
   if (myIMU.begin() == false) {
     Serial.println("BNO080 not detected at default I2C address. Check your jumpers and the hookup guide. Freezing...");
-    digitalWrite(led,HIGH);
-    while (1);
+    digitalWrite(led, HIGH);
+    while (1)
+      ;
   }
-  if(bmp180.begin()==false){
+  if (bmp180.begin() == false) {
     Serial.println("BMP180 not detected at default I2C address. Freezing...");
-    digitalWrite(led,HIGH);
-    while (1);
+    digitalWrite(led, HIGH);
+    while (1)
+      ;
   }
 
   Wire.setClock(3400);  //Increase I2C data rate to 3.4kHz
@@ -115,33 +118,34 @@ void loop() {
     }
 
     flightMode = -(round(RC_in[channels - 1])) + 1;  // More efficent conversion to flight mode based on switch position
-    if(flightMode != oldflightMode){
+    if (flightMode != oldflightMode) {
       //only update pid values when necesarry;
       oldflightMode = flightMode;
-      if(flightMode==1){
+      if (flightMode == 1) {
         RollTrim = RC_in[1];
         PitchTrim = RC_in[2];
-        RollSetpoint = 0;
+        RollSetpoint = roll;
         PitchSetpoint = pitch;
-        rollPID.SetTunings(rollKp1,rollKi1,rollKd1);
-        pitchPID.SetTunings(pitchKp1,pitchKi1,pitchKd1);
-      }
-      else if(flightMode==2){
+        rollPID.SetTunings(rollKp1, rollKi1, rollKd1);
+        pitchPID.SetTunings(pitchKp1, pitchKi1, pitchKd1);
+        targetALT = ALT;
+      } else if (flightMode == 2) {
         RollTrim = RC_in[1];
         PitchTrim = RC_in[2];
-        RollSetpoint = 0;
+        RollSetpoint = roll;
         PitchSetpoint = pitch;
-        rollPID.SetTunings(rollKp2,rollKi2,rollKd2);
-        pitchPID.SetTunings(pitchKp2,pitchKi2,pitchKd2);
+        rollPID.SetTunings(rollKp2, rollKi2, rollKd2);
+        pitchPID.SetTunings(pitchKp2, pitchKi2, pitchKd2);
+        targetALT = ALT;
       }
     }
     // If the switch position is 0 (mode 0)then the value stored in the array is 1
     // If the switch position is 2 (mode 2) then the value stored in the array is -1
   }
-  if(bmp_update <= now){
-    bmp180.getPressure(pressure,temperature);
+  if (bmp_update <= now) {
+    bmp180.getPressure(pressure, temperature);
     ALT = bmp180.altitude(pressure, P0);
-    bmp_update = now+bmp180.startPressure(3); //set bmp_update to the future time when we need to read the pressure sensor
+    bmp_update = now + bmp180.startPressure(3);  //set bmp_update to the future time when we need to read the pressure sensor
     //the 3 parameter is for max oversampling
   }
 
@@ -149,14 +153,14 @@ void loop() {
   if (Serial.available() > 0) {
     if (gps.encode(Serial.read())) {
       if (gps.location.isValid()) {  // check if the data is valid
-        digitalWrite(led,HIGH);
-        LAT = gps.location.lat();    // store the lattidude
-        LNG = gps.location.lng();    // stor the longitude
+        digitalWrite(led, HIGH);
+        LAT = gps.location.lat();  // store the lattidude
+        LNG = gps.location.lng();  // stor the longitude
         currentGPS[0] = LAT;
         currentGPS[1] = LNG;
         //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
       }
-      displayInfo(); // print out data to serial
+      displayInfo();  // print out data to serial
     }
   }
 
@@ -171,7 +175,7 @@ void loop() {
     pitch = asin(2.0f * (quatReal * quatI + quatJ * quatK)) * 57.32;  //57.32 is ratio of degress to rad
     roll = atan2(2.0f * (quatReal * quatJ - quatK * quatI), 1.0f - 2.0f * (quatI * quatI + quatJ * quatJ)) * 57.32;
     yaw = atan2(2.0f * (quatReal * quatK - quatI * quatJ), 1.0f - 2.0f * (quatJ * quatJ + quatK * quatK)) * 57.32;
-    angle = -atan2(targetGPS[1]-currentGPS[1],targetGPS[0]-currentGPS[0])* 57.32;
+    angle = -atan2(targetGPS[1] - currentGPS[1], targetGPS[0] - currentGPS[0]) * 57.32;
 
     /*
     //Serial.print(pitch, 2);
@@ -196,14 +200,19 @@ void loop() {
   } else {
     //Serial.println("Flight Mode 1 or 2");
     //the PID gains are different for mode 1 and mode 2 but we dont change that here.
-    PitchInput = pitch;
-    RollInput = roll-constrain(angle-yaw,-60,60)/3*((flightMode+1)%2);
+    if (flightMode == 2) {
+      PitchInput = pitch - constrain((targetALT - ALT),-15,15);
+      RollInput = roll - constrain((angle - yaw)/2, -30, 30);
+    } else {
+      PitchInput = pitch;
+      RollInput = roll;
+    }
     rollPID.Compute();
     pitchPID.Compute();
     servos[0].writeMicroseconds(calc_uS(RC_in[0], 0));
     servos[3].writeMicroseconds(calc_uS(RC_in[3], 3));
-    servos[1].writeMicroseconds(calc_uS(RollOutput+RollTrim, 1));// Make sure to turn off autopilot before steering
-    servos[2].writeMicroseconds(calc_uS(PitchOutput+PitchTrim, 2));// This part is just to make trim effective
+    servos[1].writeMicroseconds(calc_uS(RollOutput + RollTrim, 1));    // Make sure to turn off autopilot before steering
+    servos[2].writeMicroseconds(calc_uS(PitchOutput + PitchTrim, 2));  // This part is just to make trim effective
     /*
     Serial.print(yaw, 2);
     Serial.print(F(","));
