@@ -45,7 +45,7 @@ float yaw;
 
 uint16_t flightMode = 0;
 uint16_t oldflightMode = 0;
-uint16_t inputmode = 0;
+uint16_t inputmode = 1;
 
 
 //boolean servo_mix_on = true;
@@ -56,17 +56,17 @@ float max_roll = 30;
 float max_pitch = 15;
 
 float targetGPS[] = { 39.74961, -105.22508 };
-float currentGPS[] = { 39.749525, -105.22510 };
+float currentGPS[] = { 0, 0 };  //{ 39.749525, -105.22510 };
 
 float angle = 0.00;
 float targetALT = 1750;
 
 uint16_t index = 0;
 
-char currentlat[] = {'0','0','0','0','0','0','0','0','0','0'};
-char currentlng[] = {'0','0','0','0','0','0','0','0','0','0'};
-char targetlat[] = {'0','0','0','0','0','0','0','0','0','0'};
-char targetlng[] = {'0','0','0','0','0','0','0','0','0','0'};
+char currentlat[10] = { '0', '.', '0', '0', '0', '0', '0', '0', '0', '0' };
+char currentlng[10] = { '0', '.', '0', '0', '0', '0', '0', '0', '0', '0' };
+char targetlat[10] = { '0', '.', '0', '0', '0', '0', '0', '0', '0', '0' };
+char targetlng[10] = { '0', '.', '0', '0', '0', '0', '0', '0', '0', '0' };
 
 void setup() {
   setup_pwmRead();
@@ -144,34 +144,23 @@ void loop() {
     // If the switch position is 0 (mode 0)then the value stored in the array is 1
     // If the switch position is 2 (mode 2) then the value stored in the array is -1
   }
-  if (bmp_update <= now) {
-    bmp180.getPressure(pressure, temperature);
-    ALT = bmp180.altitude(pressure, P0);
-    bmp_update = now + bmp180.startPressure(3);  //set bmp_update to the future time when we need to read the pressure sensor
-    //the 3 parameter is for max oversampling
-  }
-
   // This sketch displays information every time gps data is availible.
   if (Serial.available() > 0) {
     char inputchar = Serial.read();
-    switch(inputchar){
-      case 'A':
+    if (inputchar == 'A') {
       inputmode = 1;
       index = 0;
-      break;
-      case 'B':
+    } else if (inputchar == 'B') {
       inputmode = 2;
       index = 0;
-      break;
-      case 'C':
+    } else if (inputchar == 'C') {
       inputmode = 3;
       index = 0;
-      break;
-      case 'D':
+    } else if (inputchar == 'D') {
       inputmode = 4;
       index = 0;
-      break;
-      case '\n':
+    } else if (inputchar == '\n') {
+      displayInfo();
       float num = ((String)currentlat).toFloat();
       currentGPS[0] = (0.00 != num ? num : currentGPS[0]);
       num = ((String)currentlng).toFloat();
@@ -180,28 +169,32 @@ void loop() {
       targetGPS[0] = (0.00 != num ? num : targetGPS[0]);
       num = ((String)targetlng).toFloat();
       targetGPS[1] = (0.00 != num ? num : targetGPS[1]);
-      break;
-      default:
-      if(inputmode ==1){
+    } else {
+      if (inputmode == 1) {
         currentlat[index] = inputchar;
         index++;
-      }
-      else if(inputmode ==2){
+      } else if (inputmode == 2) {
         currentlng[index] = inputchar;
         index++;
-      }
-      else if(inputmode ==3){
+      } else if (inputmode == 3) {
         targetlat[index] = inputchar;
         index++;
-      }
-      else if(inputmode ==4){
+      } else if (inputmode == 4) {
         targetlng[index] = inputchar;
         index++;
       }
-      if(index>9){
-        index = 9;
+      if (index >8) {
+        index = 8;
       }
     }
+  }
+
+
+  if (bmp_update <= now) {
+    bmp180.getPressure(pressure, temperature);
+    ALT = bmp180.altitude(pressure, P0);
+    bmp_update = now + bmp180.startPressure(3);  //set bmp_update to the future time when we need to read the pressure sensor
+    //the 3 parameter is for max oversampling
   }
 
   if (myIMU.dataAvailable() == true) {
@@ -269,12 +262,22 @@ void loop() {
 
 
 void displayInfo() {
-  Serial.print(F("Location: "));
+  Serial.print("Location:");
   Serial.print(currentGPS[0], 6);
   Serial.print(F(","));
   Serial.print(currentGPS[1], 6);
   Serial.print(F(","));
+  Serial.print(targetGPS[0], 6);
+  Serial.print(F(","));
+  Serial.print(targetGPS[1], 6);
+  Serial.print(F(","));
+  Serial.print("Altitude:");
   Serial.print(ALT, 6);
+  Serial.print(F(","));
+  Serial.print("Angle");
+  Serial.print(angle, 6);
+  Serial.print(F(","));
+  Serial.print(angle-yaw, 6);
   Serial.println();
 }
 
@@ -283,7 +286,7 @@ void displayInfo() {
 int calc_uS(float cmd, int servo) {  //  cmd = commanded position +-100%
                                      //  servo = servo num (to apply correct direction, rates and trim)
 
-  cmd = 1500 + (cmd) * 500;  // apply servo rates and sub trim, then convert to a  uS value
+  cmd = 1500 + (cmd)*500;  // apply servo rates and sub trim, then convert to a  uS value
 
   if (cmd > 2500) cmd = 2500;  //  limit pulsewidth to the range 500 to 2500us
   else if (cmd < 500) cmd = 500;
