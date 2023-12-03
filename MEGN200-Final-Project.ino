@@ -1,16 +1,12 @@
-#include <TinyGPSPlus.h>
 #include <Servo.h>  // include the servo library  to control the servos
 #include <Wire.h>
 #include <PID_v1.h>
 #include "SparkFun_BNO080_Arduino_Library.h"  // Click here to get the library: http://librarymanager/All#SparkFun_BNO080
 #include <SFE_BMP180.h>
 
-TinyGPSPlus gps;  // the TinyGPS++ object
 BNO080 myIMU;
 SFE_BMP180 bmp180;
 
-float LAT = 0.0000;  // temp values to hold GPS data
-float LNG = 0.0000;
 float ALT = 0.0000;
 
 float P0 = 1013.0;
@@ -49,10 +45,9 @@ float yaw;
 
 uint16_t flightMode = 0;
 uint16_t oldflightMode = 0;
+uint16_t inputmode = 0;
 
-boolean servo_dir[] = { 1, 1, 1, 1, 1 };              // Direction: 1 is normal,  -1 is reverse
-float servo_rates[] = { 1, 1, 1, 1, 1 };              // Rates: range 0 to 2 (1 = +-500us  (NORMAL), 2 = +-1000us (MAX)): The amount of servo deflection in both directions
-float servo_subtrim[] = { 0.0, 0.0, 0.0, 0.0, 0.0 };  // Subtrimrange -1 to +1 (-1 = 1000us, 0 = 1500us,  1 = 2000us): The neutral position of the servo
+
 //boolean servo_mix_on = true;
 float RollTrim = 0;
 float PitchTrim = 0;
@@ -65,6 +60,13 @@ float currentGPS[] = { 39.749525, -105.22510 };
 
 float angle = 0.00;
 float targetALT = 1750;
+
+uint16_t index = 0;
+
+char currentlat[] = {'0','0','0','0','0','0','0','0','0','0'};
+char currentlng[] = {'0','0','0','0','0','0','0','0','0','0'};
+char targetlat[] = {'0','0','0','0','0','0','0','0','0','0'};
+char targetlng[] = {'0','0','0','0','0','0','0','0','0','0'};
 
 void setup() {
   setup_pwmRead();
@@ -151,16 +153,54 @@ void loop() {
 
   // This sketch displays information every time gps data is availible.
   if (Serial.available() > 0) {
-    if (gps.encode(Serial.read())) {
-      if (gps.location.isValid()) {  // check if the data is valid
-        digitalWrite(led, HIGH);
-        LAT = gps.location.lat();  // store the lattidude
-        LNG = gps.location.lng();  // stor the longitude
-        currentGPS[0] = LAT;
-        currentGPS[1] = LNG;
-        //ALT = gps.altitude.meters(); //we will get altitude from barometric pressure sensor
+    char inputchar = Serial.read();
+    switch(inputchar){
+      case 'A':
+      inputmode = 1;
+      index = 0;
+      break;
+      case 'B':
+      inputmode = 2;
+      index = 0;
+      break;
+      case 'C':
+      inputmode = 3;
+      index = 0;
+      break;
+      case 'D':
+      inputmode = 4;
+      index = 0;
+      break;
+      case '\n':
+      float num = ((String)currentlat).toFloat();
+      currentGPS[0] = (0.00 != num ? num : currentGPS[0]);
+      num = ((String)currentlng).toFloat();
+      currentGPS[1] = (0.00 != num ? num : currentGPS[1]);
+      num = ((String)targetlat).toFloat();
+      targetGPS[0] = (0.00 != num ? num : targetGPS[0]);
+      num = ((String)targetlng).toFloat();
+      targetGPS[1] = (0.00 != num ? num : targetGPS[1]);
+      break;
+      default:
+      if(inputmode ==1){
+        currentlat[index] = inputchar;
+        index++;
       }
-      displayInfo();  // print out data to serial
+      else if(inputmode ==2){
+        currentlng[index] = inputchar;
+        index++;
+      }
+      else if(inputmode ==3){
+        targetlat[index] = inputchar;
+        index++;
+      }
+      else if(inputmode ==4){
+        targetlng[index] = inputchar;
+        index++;
+      }
+      if(index>9){
+        index = 9;
+      }
     }
   }
 
@@ -201,8 +241,8 @@ void loop() {
     //Serial.println("Flight Mode 1 or 2");
     //the PID gains are different for mode 1 and mode 2 but we dont change that here.
     if (flightMode == 2) {
-      PitchInput = pitch - constrain((targetALT - ALT),-15,15);
-      RollInput = roll - constrain((angle - yaw)/2, -30, 30);
+      PitchInput = pitch - constrain((targetALT - ALT), -15, 15);
+      RollInput = roll - constrain((angle - yaw) / 2, -30, 30);
     } else {
       PitchInput = pitch;
       RollInput = roll;
@@ -230,9 +270,9 @@ void loop() {
 
 void displayInfo() {
   Serial.print(F("Location: "));
-  Serial.print(LAT, 6);
+  Serial.print(currentGPS[0], 6);
   Serial.print(F(","));
-  Serial.print(LNG, 6);
+  Serial.print(currentGPS[1], 6);
   Serial.print(F(","));
   Serial.print(ALT, 6);
   Serial.println();
@@ -242,11 +282,8 @@ void displayInfo() {
 
 int calc_uS(float cmd, int servo) {  //  cmd = commanded position +-100%
                                      //  servo = servo num (to apply correct direction, rates and trim)
-  int16_t dir;
-  if (servo_dir[servo] == 0) dir = -1;
-  else dir = 1;  //  set the direction of servo travel
 
-  cmd = 1500 + (cmd * servo_rates[servo] * dir + servo_subtrim[servo]) * 500;  // apply servo rates and sub trim, then convert to a  uS value
+  cmd = 1500 + (cmd) * 500;  // apply servo rates and sub trim, then convert to a  uS value
 
   if (cmd > 2500) cmd = 2500;  //  limit pulsewidth to the range 500 to 2500us
   else if (cmd < 500) cmd = 500;
