@@ -162,13 +162,17 @@ void loop() {
     } else if (inputchar == '\n') {
       displayInfo();
       float num = ((String)currentlat).toFloat();
-      currentGPS[0] = (0.00 != num ? num : currentGPS[0]);
+      if(37<num&&41>num){
+      currentGPS[0] = (0.00 != num ? num : currentGPS[0]);}
       num = ((String)currentlng).toFloat();
-      currentGPS[1] = (0.00 != num ? num : currentGPS[1]);
+      if(-103>num &&-110<num){
+      currentGPS[1] = (0.00 != num ? num : currentGPS[1]);}
       num = ((String)targetlat).toFloat();
-      targetGPS[0] = (0.00 != num ? num : targetGPS[0]);
+      if(37<num&&41>num){
+      targetGPS[0] = (0.00 != num ? num : targetGPS[0]);}
       num = ((String)targetlng).toFloat();
-      targetGPS[1] = (0.00 != num ? num : targetGPS[1]);
+      if(-103>num &&-110<num){
+      targetGPS[1] = (0.00 != num ? num : targetGPS[1]);}
     } else {
       if (inputmode == 1) {
         currentlat[index] = inputchar;
