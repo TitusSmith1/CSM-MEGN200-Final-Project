@@ -28,12 +28,12 @@ double RollSetpoint, RollInput, RollOutput;     // Roll setpoint should be aroun
 double PitchSetpoint, PitchInput, PitchOutput;  // Pitch setpoint will be set when autopilot is activated and will be the default angle of attack.
 
 //Define the aggressie and conservative Tuning Parameters for roll
-double rollKp1 = 0.02, rollKi1 = 0.000, rollKd1 = 0.0003;
-double rollKp2 = 0.025, rollKi2 = 0.000, rollKd2 = 0.00035;
+double rollKp1 = 0.03, rollKi1 = 0.000, rollKd1 = 0.0003;
+double rollKp2 = 0.03, rollKi2 = 0.000, rollKd2 = 0.0003;
 
 //Define the aggressive and conservative Tuning Parameters for pitch
-double pitchKp1 = 0.02, pitchKi1 = 0.000, pitchKd1 = 0.0003;
-double pitchKp2 = 0.025, pitchKi2 = 0.000, pitchKd2 = 0.00035;
+double pitchKp1 = 0.02, pitchKi1 = 0.000, pitchKd1 = 0.0002;
+double pitchKp2 = 0.025, pitchKi2 = 0.000, pitchKd2 = 0.0002;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&RollInput, &RollOutput, &RollSetpoint, rollKp1, rollKi1, rollKd1, DIRECT);
@@ -144,7 +144,7 @@ void loop() {
     // If the switch position is 0 (mode 0)then the value stored in the array is 1
     // If the switch position is 2 (mode 2) then the value stored in the array is -1
   }
-  // This sketch displays information every time gps data is availible.
+  // This sketch displays information every time serial data is availible from the mega board.
   if (Serial.available() > 0) {
     char inputchar = Serial.read();
     if (inputchar == 'A') {
@@ -163,16 +163,17 @@ void loop() {
       displayInfo();
       float num = ((String)currentlat).toFloat();
       if(37<num&&41>num){
-      currentGPS[0] = (0.00 != num ? num : currentGPS[0]);}
+      currentGPS[0] = num;
+      digitalWrite(led,HIGH);}
       num = ((String)currentlng).toFloat();
       if(-103>num &&-110<num){
-      currentGPS[1] = (0.00 != num ? num : currentGPS[1]);}
+      currentGPS[1] = num;}
       num = ((String)targetlat).toFloat();
       if(37<num&&41>num){
-      targetGPS[0] = (0.00 != num ? num : targetGPS[0]);}
+      targetGPS[0] = num;}
       num = ((String)targetlng).toFloat();
       if(-103>num &&-110<num){
-      targetGPS[1] = (0.00 != num ? num : targetGPS[1]);}
+      targetGPS[1] = num;}
     } else {
       if (inputmode == 1) {
         currentlat[index] = inputchar;
@@ -187,8 +188,8 @@ void loop() {
         targetlng[index] = inputchar;
         index++;
       }
-      if (index >8) {
-        index = 8;
+      if (index >9) {
+        index = 9;
       }
     }
   }
@@ -238,10 +239,10 @@ void loop() {
     //Serial.println("Flight Mode 1 or 2");
     //the PID gains are different for mode 1 and mode 2 but we dont change that here.
     if (flightMode == 2) {
-      PitchInput = pitch - constrain((targetALT - ALT), -15, 15);
+      PitchInput = pitch ;//- constrain((targetALT - ALT)*40, -15, 15);
       RollInput = roll - constrain((angle - yaw) / 2, -30, 30);
     } else {
-      PitchInput = pitch;
+      PitchInput = pitch ;//- constrain((targetALT - ALT)*40, -15, 15);
       RollInput = roll;
     }
     rollPID.Compute();
@@ -266,7 +267,7 @@ void loop() {
 
 
 void displayInfo() {
-  Serial.print("Location:");
+  /*Serial.print("Location:");
   Serial.print(currentGPS[0], 6);
   Serial.print(F(","));
   Serial.print(currentGPS[1], 6);
@@ -277,11 +278,11 @@ void displayInfo() {
   Serial.print(F(","));
   Serial.print("Altitude:");
   Serial.print(ALT, 6);
-  Serial.print(F(","));
-  Serial.print("Angle");
+  Serial.print(F(","));*/
+  Serial.print("Angle:");
   Serial.print(angle, 6);
-  Serial.print(F(","));
-  Serial.print(angle-yaw, 6);
+  Serial.print(F(",Yaw:"));
+  Serial.print(yaw, 6);
   Serial.println();
 }
 
