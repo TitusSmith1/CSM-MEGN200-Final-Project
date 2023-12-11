@@ -1,3 +1,13 @@
+/*
+Titus Smith
+CSM MEGN200
+12/11/2023
+ **************Note************
+ The following code is entirely derived from code by Kelvin Nelson with only a few
+ cursory changes to values and mins and maxes and servo indexing.
+*/
+
+
 /*  Kelvin Nelson 24/07/2019
  *  
  *  Pulse Width Modulation (PWM)  decoding of RC Receiver with failsafe
@@ -36,114 +46,6 @@
  * 
  *  Although it's not exactly the same,  this code follows similar principles to those explained in this video: https://youtu.be/bENjl1KQbvo
   * 
- */
-// LIST OF FUNCTIONS:
-// OUTPUT TYPE    NAME OF FUNCTION           NOTES
-
-//  void           setup_pwmRead()            initialise the PWM measurement using pin  change interrupts
-
-// RC RECEIVER DECODING
-// boolean        RC_avail()                 returns a HIGH when new RC data is available
-// float          RC_decode(channel  number)  decodes the selected RC channel into the range +-100%, and applies a failsafe.
-//  void           print_RCpwm()              Prints the RC channel raw data to serial  port (used for calibration).
-
-// GENERIC PWM MEASUREMENTS
-// boolean        PWM_read(channel  number)   returns a HIGH when a new pulse has been detected on a particular channel.  
-//                                           The function saves the pulse data  to variables outside the interrupt routines
-//                                           and  must be called just before using the rest of PWM functions.
-// unsigned long  PWM_time()                 returns the time at the start of pulse 
-// float          PWM()                      returns the pulse width
-// float          PWM_period()               returns the time between pulses
-// float          PWM_freq()                 calculates  the frequency
-// float          PWM_duty()                 calculates the duty
-
-//  NOTE: PWM_read(CH) and RC_decode(CH) use the same flags to detect when new data  is available, meaning data could be lost if both are used on the same channel at  the same time.
-// SUGESTION: if you want to use PWM_read(CH) to find the frame  rate of an RC channel call it before RC_decode(CH). The output from RC_decode(CH)  will then default to the failsafe.
-
-// HOW TO USE, including example sketches
-
-//  under the "USER DEFINED VARIABLES" title in the code below:
-//
-//    Step  1: enter the input pins into the array pwmPIN[] = {}. 
-//
-//            -  Any number of pins can be entered into pwmPIN[] (pins available 0 - 13 and A0 -  A5)
-//            - The pins do not need to be in numerical order, for example  pwmPIN[] = {A0,5,6,10,8} for 5 channels, or pwmPIN[] = {A0,5} for 2 channels
-//            - The first element in the array is the pin number for  "channel 1",  and the second is the pin number for "channel 2"... etc.
-//            - All  pins connected to the RC receiver need to be at the start of the array. i.e. the  first 2 channels could be RC inputs and the 3rd channel could be connected to another  device like the echo pin of an ultrasonic sensor.
-//
-//    Step 2: if an RC  receiver is connected to all of the inputs then set RC_inputs to 0, if not specify  the number of channels connected to the receiver i.e. RC_inputs = 2;
-//
-//    Step 3: calibrate your transmitter by uploading a simple sketch with this .ino  file included in the sketch folder, and print the raw PWM values to serial (alternatively  copy and paste the functions needed into the sketch).
-//            Using the  info from the serial monitor manually update the values in arrays RC_min[], RC_mid[],  RC_max[] to suit your transmitter (use full rates to get the best resolution).
-        
-//            an example sketch for printing the RC channel PWM data  to serial. 
-              /* 
-              void setup()  {
-                  setup_pwmRead();
-                  Serial.begin(9600);
-              }
-              void loop()  {
-                  if(RC_avail()) print_RCpwm();
-              }
-               */
-
-//    Step 4: Choose a failsafe position for each channel, in the range -1.0 to +1.0,  and enter it into the array RC_failsafe[] = {}
-//            Note: if you would  like the arduino to respond to the loss of transmitter signal you may need to disable  the failsafe feature on your receiver (if it has one).
-//            an example  sketch to check the operation of the failsafe, and for printing the calibrated channels  to serial:
-/* 
-              unsigned long now;                        //  timing variables to update data at a regular interval                  
-              unsigned  long rc_update;
-              const int channels = 6;                   // specify  the number of receiver channels
-              float RC_in[channels];                    //  an array to store the calibrated input from receiver 
-              
-              void  setup()  {
-                  setup_pwmRead();                      
-                  Serial.begin(9600);
-              }
-              
-              void loop()  {
-                  now  = millis();
-                  
-                  if(RC_avail() || now - rc_update  > 25){   // if RC data is available or 25ms has passed since last update (adjust  to suit frame rate of receiver)
-                    
-                    rc_update  = now;                           
-                    
-                    //print_RCpwm();                        // uncommment to print raw data from receiver to serial
-                    
-                    for (int i = 0; i<channels; i++){       //  run through each RC channel
-                      int CH = i+1;
-                      
-                      RC_in[i] = RC_decode(CH);             // decode receiver channel  and apply failsafe
-                      
-                      print_decimal2percentage(RC_in[i]);   // uncomment to print calibrated receiver input (+-100%) to serial       
-                    }
-                    Serial.println();                       //  uncomment when printing calibrated receiver input to serial.
-                  }
-              }
-               */
-
-// EXAMPLE USE OF GENERIC PWM FUNCTIONS:
-  /*
- // Print the pulse width of channel 1 to the serial monitor. 
- // This  is equivelant to the using standard arduino pulseIn(pin, HIGH) function, but without  blocking the code.
- 
- if (PWM_read(1)){          // if a new pulse is detected  on channel 1, print the pulse width to serial monitor.
-   Serial.println(PWM());
-  } 
-  */
- // Or 
- /*
- // Print RC receiver frame length and frame rate
-  
- if (PWM_read(1)){                                      // if a new pulse is  detected on channel 1
-   Serial.print(PWM_period(),0);Serial.print("uS ");     
-   Serial.print(PWM_freq());Serial.println("Hz");
- }
-
- */
-
-/*
-  *  USER DEFINED VARIABLES (MODIFY TO SUIT YOUR APPLICATION)
  */
  
 // PWM  input pins, any of the following pins can be used: digital 0 - 13 or analog A0 -  A5 
