@@ -1,16 +1,17 @@
-#include <Servo.h>  // include the servo library  to control the servos
-#include <Wire.h>
-#include <PID_v1.h> // https://github.com/br3ttb/Arduino-PID-Library
-#include "SparkFun_BNO080_Arduino_Library.h"  // Click here to get the library: http://librarymanager/All#SparkFun_BNO080
-#include <SFE_BMP180.h> //https://github.com/LowPowerLab/SFE_BMP180
-
-
 /*
 Titus Smith
 CSM MEGN200 project 'Autonomous RC Plane'
 12/11/2023
 https://www.youtube.com/channel/UC8rHDX951rChz6TMxnTbdBA
 */
+
+
+#include <Servo.h>  // include the servo library  to control the servos
+#include <Wire.h>
+#include <PID_v1.h> // https://github.com/br3ttb/Arduino-PID-Library
+#include "SparkFun_BNO080_Arduino_Library.h"  // Click here to get the library: http://librarymanager/All#SparkFun_BNO080
+#include <SFE_BMP180.h> //https://github.com/LowPowerLab/SFE_BMP180
+
 
 BNO080 myIMU; // IMU object 
 SFE_BMP180 bmp180; // barometric pressure sensor object
